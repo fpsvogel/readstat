@@ -1,6 +1,12 @@
 # Readstat
 
+A CLI app that shows reading statistics:
+
 ![Readstat sample video](/sample.gif)
+
+Based a CSV reading log:
+
+![Readstat sample CSV reading log](/sample-csv.jpg)
 
 ## Usage
 
