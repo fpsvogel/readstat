@@ -1,20 +1,14 @@
 # Readstat
 
-TODO: Delete this and the text above, and describe your gem
-
-## Installation
-
+![Readstat sample video](/sample.gif)
 
 ## Usage
 
-TODO: Write usage instructions here
-
-
+Enter `help` for instructions, or see [`cli.rb`](https://github.com/fpsvogel/readstat/blob/main/lib/cli.rb#L58).
 
 ## Contributing
 
-Bug reports are welcome on GitHub at https://github.com/[USERNAME]/readstat.
-
+Bug reports are welcome at https://github.com/fpsvogel/readstat/issues.
 
 ## License
 
