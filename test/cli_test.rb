@@ -25,7 +25,9 @@ class CLITest < ReadstatTestWithItems
                      .result(Readstat::Library.new(items, config.fetch(:item)),
                              return_raw_data: return_raw_data)
                      .raw
-  rescue Readstat::AppError => e; err_block.call(e)
+  rescue Readstat::AppError => e
+    err_block.call(e)
+    []
   end
 
   # COMMANDS (perfect input, no options) # # # # # # # # # # # # # # # # # # # #
@@ -181,7 +183,10 @@ class CLITest < ReadstatTestWithItems
                  .first
                end
     end
-    expected = all.map { |item, datum| ["#{item.title} (#{item.date_finished})", datum] }
+    expected = all.map do |item, datum|
+                    author = "#{item.author} - " unless item.author.nil?
+                    ["#{author}#{item.title} (#{item.date_finished})", datum]
+                  end
                   .then do |list|
                     { top: list.reverse, bottom: list }[order]
                   end
@@ -288,10 +293,11 @@ class CLITest < ReadstatTestWithItems
                            .sort_by do |entry|
                              [entry[:dates_finished].max, entry[:title]]
                            end
-                         entries.map! do |entry|
-                           entry[:dates_finished] = entry[:dates_finished].join(", ")
-                           entry
-                         end
+                           entries.each do |entry|
+                             entry[:dates_finished].define_singleton_method(:to_s) do
+                               join(", ")
+                             end
+                           end
                          [group_key, entries]
                        end
                        .to_h
@@ -482,8 +488,8 @@ class CLITest < ReadstatTestWithItems
     item_b = all_items[:tome]
     item_exclude = all_items[:docu]
     test_items = [item_a, item_exclude, item_b]
-    expected = { "2021-01" => { "#{item_a.title} (#{item_a.date_finished})" => item_a.rating },
-                 "2021-03" => { "#{item_b.title} (#{item_b.date_finished})" => item_b.rating } }
+    expected = { "2021-01" => { "#{item_a.author} - #{item_a.title} (#{item_a.date_finished})" => item_a.rating },
+                 "2021-03" => { "#{item_b.author} - #{item_b.title} (#{item_b.date_finished})" => item_b.rating } }
     actual = run_command("monthly top ratings format=print,ebook", test_items)
     assert_equal expected.to_a, actual.to_a
   end
@@ -604,71 +610,162 @@ class CLITest < ReadstatTestWithItems
 
   # BAD INPUT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-  def no_command
-   skip
+  def assert_error_raised(error_type)
+    one_error_raised = err_log.filter { |err| err.is_a? error_type }
+                              .count == 1
+    assert one_error_raised
   end
 
-  def no_argument
-   skip
+  def test_empty_input
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def superfluous_words
-   skip
+  def test_nonexistent_command
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("conut", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def spaces_in_filter
-   skip
+  def test_multiple_commands
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count top length", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def search_filter_missing_quotes
-   skip
+  def test_no_argument
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def search_filter_missing_one_quote
-   skip
+  def test_multiple_arguments
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count lengths ratings", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def format_filter_invalid
-   skip
+  def test_empty_filter
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count lengths genre=", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def genre_filter_nonexistent #??
-   skip
+  def test_superfluous_word
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count length gobbledigook", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def rating_filter_too_high
-   skip
+  def test_misspelled_argument
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count lenght", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def rating_filter_negative
-   skip
+  def test_spaces_in_filter
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("count length genre = novel", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def rating_filter_decimal
-   skip
+  def test_search_filter_missing_quotes
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command('count length search=j. r. r. tolkien', test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def rating_filter_nonnumeric
-   skip
+  def test_search_filter_missing_one_quote
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command('count length search="j. r. r. tolkien', test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def status_filter_invalid
-   skip
+  def test_rating_filter_nonnumeric
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("list genre rating=1,two", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def length_filter_invalid
-   skip
+  def test_manual_length_filter_invalid_length
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("list genre length=ten-200", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def length_filter_bad_manual
-   skip
+  def test_manual_length_filter_missing_length
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("list genre length=200-", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def timespan_filter_invalid_date
-   skip
+  def test_manual_length_filter_missing_length_no_hyphen
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("list genre length=200", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 
-  def timespan_filter_future_date
-   skip
+  def test_timespan_filter_invalid_date
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("list genre 2020/03-2020/14", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
+  end
+
+  def test_timespan_filter_invalid_date_format
+#    skip
+    test_items = items(:booklet, :tome)
+    expected = []
+    actual = run_command("list genre 2020.03-2020.14", test_items)
+    assert_equal expected.to_a, actual.to_a
+    assert_error_raised Readstat::InputError
   end
 end

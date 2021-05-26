@@ -5,6 +5,8 @@ require_relative "../util"
 require_relative "option"
 
 module Readstat
+
+  # a Filter is an option entered in the CLI that is used to filter the results.
   class Filter < Option
     attr_reader :superquery
     private_class_method :new

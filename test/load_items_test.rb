@@ -263,6 +263,8 @@ class LoadItemsTest < ReadstatTest
                            config.fetch(:load),
                            config.fetch(:item),
                            &err_block)
+    rescue Errno::ENOENT
+      raise Readstat::FileError.new(path, label: "File not found!")
   end
 
   def invalid_line(path, items = [])
@@ -276,45 +278,45 @@ class LoadItemsTest < ReadstatTest
   end
 
   def test_typical
-    #skip
+#    skip
     items = all_items.slice(:metz, :milton, :metz_reread, :jedi).values # in order of date finished
     assert_equal items, load_library("typical.csv").items
   end
 
   def test_headers_and_headings_are_optional
-    skip
+#    skip
     items = all_items.slice(:metz, :milton, :metz_reread, :jedi).values
     assert_equal items, load_library("omit_headings.csv").items
   end
 
   def test_grouped_items_on_same_line
-    skip
+#    skip
     items = all_items.slice(:pod1, :pod3, :pod2).values # in order of title, since dates are same
     assert_equal items, load_library("grouped_items.csv").items
   end
 
   def test_dnf_percent
-    skip
+#    skip
     items = [all_items[:pod1_half]]
     assert_equal items, load_library("dnf_percent.csv").items
   end
 
   def test_dnf_percent_applies_to_all_perusals
-    skip
+#    skip
     items = [all_items[:pod1_half],
              all_items[:pod1_half].with_dates("2020-12-01", "2020-12-01")]
     assert_equal items, load_library("dnf_percent_with_rereads.csv").items
   end
 
   def test_dnf_date_percent
-    skip
+#    skip
     items = [all_items[:pod1_half],
              all_items[:pod1].with_dates("2020-12-01", "2020-12-01")]
     assert_equal items, load_library("dnf_percents_in_dates.csv").items
   end
 
   def test_may_omit_some_dates_started_for_single_days
-    skip
+#    skip
     items = [all_items[:pod3],
              all_items[:pod3].with_dates("2021-01-01", "2021-01-01"),
              all_items[:pod3].with_dates("2021-02-01", "2021-02-01")]
@@ -322,90 +324,90 @@ class LoadItemsTest < ReadstatTest
   end
 
   def test_may_omit_all_dates_started_for_single_days
-    skip
+#    skip
     items = [all_items[:pod2],
              all_items[:pod2].with_dates("2021-01-01", "2021-01-01")]
     assert_equal items, load_library("omit_all_dates_started.csv").items
   end
 
   def test_sources_can_be_indicated_variously
-    skip
+#    skip
     items = all_items.slice(:sources_1, :sources_2, :sources_3, :sources_4).values
     assert_equal items, load_library("sources.csv").items
   end
 
   def test_cannot_have_more_than_one_ISBN
-    skip
+#    skip
     invalid_line("two_isbns.csv")
   end
 
   def test_extra_spaces_ok
-    skip
+#    skip
     items = [all_items[:milton]]
     assert_equal items, load_library("spaces_and_tabs.csv").items
   end
 
   def test_no_items_ok
-    skip
+#    skip
     items = [all_items[:milton]]
     assert_equal items, load_library("spaces_and_tabs.csv").items
   end
 
   def test_error_if_file_not_found
-    skip
+#    skip
     assert_raises(Readstat::FileError) do
       load_library("nonexistent_file.csv")
     end
   end
 
   def test_skip_item_unless_all_columns_present_except_notes
-    skip
+#    skip
     invalid_line("missing_column.csv", [all_items[:pod3]])
   end
 
   def test_skip_item_if_name_genre_or_length_are_blank
-    skip
+#    skip
     invalid_line("blank_column_error.csv")
   end
 
   def test_skip_item_if_title_in_name_is_blank
-    skip
+#    skip
     invalid_line("blank_title_error.csv")
   end
 
   def test_warn_about_any_other_blanks
-    skip
+#    skip
     invalid_line("blank_column_warning.csv", [all_items[:blank]])
   end
 
   def test_nonsense_input_OK_unless_rating_or_dates_or_length
-    skip
+#    skip
     items = [all_items[:nonsense]]
     assert_equal items, load_library("valid_nonsense.csv").items
   end
 
   def test_invalid_rating
-    skip
+#    skip
     invalid_line("invalid_rating.csv")
   end
 
   def test_invalid_dates_unparsable
-    skip
+#    skip
     invalid_line("invalid_dates_parse.csv")
   end
 
   def test_invalid_dates_bad_count
-    skip
+#    skip
     invalid_line("invalid_dates_count.csv")
   end
 
   def test_invalid_dates_bad_order
-    skip
+#    skip
     invalid_line("invalid_dates_order.csv")
   end
 
   def test_invalid_length
-    skip
+#    skip
     invalid_line("invalid_length.csv")
   end
 end

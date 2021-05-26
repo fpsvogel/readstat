@@ -7,7 +7,7 @@ task default: :test
 
 Rake::TestTask.new(:test) do |t|
   t.libs << "test"
-  t.test_files = FileList["test/load_library_test.rb",
+  t.test_files = FileList["test/load_items_test.rb",
                           "test/cli_test.rb",
                           "test/result_test.rb"]
   t.warning = false
@@ -15,7 +15,7 @@ end
 
 Rake::TestTask.new(:warn) do |t|
   t.libs << "test"
-  t.test_files = FileList["test/load_library_test.rb",
+  t.test_files = FileList["test/load_items_test.rb",
                           "test/cli_test.rb",
                           "test/result_test.rb"]
 end

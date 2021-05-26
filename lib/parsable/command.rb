@@ -6,34 +6,51 @@ require_relative "parsable"
 require_relative "filter"
 require_relative "../item/length"
 require_relative "../result"
+require_relative "help"
 
 module Readstat
+  # a Command is a CLI command such as "average" or "list".
   class Command < Parsable
     using MapExtractFirst
-    attr_reader :short_name, :lib, :superquery
-    attr_accessor :arg, :filters, :output_options, :number_arg
+    attr_reader :arg, :all_args, :filters, :output_options, :number_arg,
+                :short_name, :lib, :superquery, :description, :takes_number_arg
     private_class_method :new
-    attr_private :all_args, :short_args, :arg_prefix,
+    attr_private :short_args, :arg_prefix,
                  :run, :run_special,
                  :run_items_and_data, :return_raw_data,
                  :item_lengths, :item_formats, :superqueries_order
 
     class << self
-      # TODO: what if invalid command? (or empty?)
+      attr_accessor :help_examples
+
       def parse(input_str, config_item)
         input = input_str.split(" ")
-        input_preparsed = Filter.preparse(preparse(input))
-        cmd, input_without_cmd = super(input_preparsed)
-        cmd.values.first.parse_remainder(input_preparsed, input_without_cmd, config_item)
+        if input.first == "help"
+          if input.length > 1
+            raise InputError, "The help command does not take any arguments."
+          end
+          help
+        else
+          input_preparsed = Filter.preparse(preparse(input))
+          cmd_hash, input_without_cmd = super(input_preparsed)
+          if cmd_hash.empty?
+            raise InputError, 'Invalid input! Enter "help" to see valid input.'
+          end
+          cmd_hash.values.first.parse_remainder(input_preparsed,
+                                                input_without_cmd, config_item)
+        end
       end
 
-      def one_per_command
+      def one_per_input
         true
+      end
+
+      def help
+        @help ||= Help.new(all, Filter.all, Option.all, help_examples)
       end
     end
 
-    # TODO: adjust automatic short name & short args to avoid conflict if multiple cmds with same initial letter
-    def initialize(name, all_args, desc,
+    def initialize(name, all_args, description,
                    args_can_be_plural: false,
                    takes_number_arg: false,
                    default_number_arg: 1,
@@ -41,14 +58,24 @@ module Readstat
                    default_arg: nil)
       @name = name.to_sym
       @all_args = all_args
-      @desc = desc
-      @short_name = name.to_s[0].to_sym
-      @short_args = @all_args.map { |arg| arg.to_s[0].to_sym }
+      @description = description
+      @short_name = find_unused_short_name(name)
+      @short_args = find_unused_short_args
       @args_can_be_plural = args_can_be_plural
       @takes_number_arg = takes_number_arg
       @default_number_arg = default_number_arg
       @arg_prefix = optional_arg_prefix
       @default_arg = default_arg
+    end
+
+    # TODO: adjust automatic short name & short args to avoid conflict if there
+    # are multiple commands/args with same initial letter.
+    def find_unused_short_name(name)
+      name.to_s[0].to_sym
+    end
+
+    def find_unused_short_args
+      @all_args.map { |arg| arg.to_s[0].to_sym }
     end
 
     def specify(preparse: nil,
@@ -98,16 +125,16 @@ module Readstat
       label.nil? ? result : { label => result }
     end
 
-    # TODO: error if more than one arg/number inputted?
-    # TODO: error if invalid arg/number/filter inputted? (as in valid_arg below)
     def parse_remainder(input_preparsed, input_without_cmd, config_item)
       number_arg, input_without_number = extract_number_arg(input_without_cmd)
       arg, input_without_arg = extract_arg(input_without_number)
       filters, input_without_filters = Filter.parse(input_without_arg, config_item)
-      output_options, _input_without_output_options = Option.parse(input_without_filters)
+      output_options, input_final_remainder = Option.parse(input_without_filters)
+      unless input_final_remainder.empty?
+        raise InputError, 'Invalid input! Enter "help" to see examples.'
+      end
       @superqueries_order = detect_superqueries_order(input_preparsed, filters)
-      @item_formats = config_item.fetch(:formats).keys # TODO: move
-      # TODO error if input_without_filters is not empty
+      @item_formats = config_item.fetch(:formats).keys
       with_args(arg, filters, output_options, number_arg)
     end
 
@@ -127,7 +154,8 @@ module Readstat
       @regex ||= /\A(?:#{name}|#{short_name})\z/
     end
 
-    # TODO: copy by creating new, as in Item; this is quick and dirty, using mutable state
+    # achieves an immutable public interface like in Item, but with a shortcut
+    # using protected (mutating) setters.
     def with_args(arg, filters, output_options, number_arg = nil)
       copy = dup
       copy.arg = arg
@@ -135,6 +163,22 @@ module Readstat
       copy.filters = filters
       copy.output_options = output_options
       copy
+    end
+
+    def arg=(new_arg)
+      @arg = new_arg
+    end
+
+    def number_arg=(new_number_arg)
+      @number_arg = new_number_arg
+    end
+
+    def filters=(new_filters)
+      @filters = new_filters
+    end
+
+    def output_options=(new_output_options)
+      @output_options = new_output_options
     end
 
     def detect_superqueries_order(input, filters)
@@ -154,10 +198,16 @@ module Readstat
 
     def extract_arg(input)
       input_singular = singularize(input)
-      arg, input_without_arg = input_singular.map_extract_first do |word|
-        index = all_args.index(word.delete_prefix("#{arg_prefix.strip} ").to_sym) ||
-          short_args.index(word.to_sym)
+      arg, input_without_arg, arg_index = input_singular.map_extract_first do |word|
+        index = all_args.index(word.delete_prefix("#{arg_prefix} ").to_sym) ||
+                  short_args.index(word.to_sym)
         all_args[index] unless index.nil?
+      end
+      if arg.nil?
+        raise InputError, 'Missing argument. See "help" for examples.'
+      end
+      if input_without_arg[arg_index - 1] == arg_prefix
+        input_without_arg.delete_at(arg_index - 1)
       end
       [arg, input_without_arg]
     end
@@ -165,20 +215,6 @@ module Readstat
     def singularize(input)
       input.map { |word| word[-1] == "s" ? word.chop : word }
     end
-
-    # def valid_arg(input)
-    #   #valid, unrecognized = input.partition do |word|
-    #   #  (@all_args + @short_args).include?(word.to_sym)
-    #   #end
-    #   valid = input.select do |word|
-    #     (@all_args + @short_args).include?(word.to_sym)
-    #   end
-    #   if valid.empty?
-    #     raise InputError, "No valid argument(s) in #{input.join(" ")}\
-    #       \nUse only these: #{@all_args.join(", ")}"
-    #   end
-    #   valid.first
-    # end
 
     def all_superqueries
       ([[name, superquery]] + filters.values.map { |f| [f.name, f.superquery] })
@@ -206,7 +242,7 @@ module Readstat
     end
 
     def items
-      lib.items(filters, split_months: false) #RM Ruby 3 split_months
+      lib.items(filters)
     end
 
     def preprocess(data)

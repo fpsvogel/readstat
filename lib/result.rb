@@ -6,20 +6,24 @@ require "tabulo"
 require "unicode_plot"
 require "tty-pie"
 
-# TODO: do not modify @raw
-
 module Readstat
+  # a Result holds the raw output from a Command and can output it to STDOUT in
+  # chart form.
   class Result
     using HashToAttr
     attr_reader :raw
     attr_private :cmd, :view, :unit
 
     def initialize(raw_result, command)
-      @raw = raw_result
+      @raw = convert_by_unit(raw_result)
       @cmd = command
       @view = cmd.output_options[:view]&.value&.to_sym || :raw
-      @unit = cmd.output_options[:unit]&.value&.to_sym
+      @unit = cmd.output_options[:unit]&.value&.to_sym || default_unit
       pluralize_unit
+    end
+
+    def default_unit
+      :page if %i[length amount speed].include? cmd.arg
     end
 
     def pluralize_unit
@@ -40,7 +44,6 @@ module Readstat
         raise OutputError, "Cannot show non-numeric data in a numeric view ."
       end
       config_output.fetch(:appearance).to_attr_private(self)
-      convert_by_unit
       if view == :raw
         print_raw
       else
@@ -50,9 +53,9 @@ module Readstat
 
     protected
 
-    def convert_by_unit
-      return if unit.nil?
-      @raw = convert(raw, "with_#{unit}_output")
+    def convert_by_unit(unconverted_raw)
+      return unconverted_raw if unit.nil?
+      convert(unconverted_raw, "with_#{unit}_output")
     end
 
     def numeric_view?
@@ -69,8 +72,8 @@ module Readstat
     end
 
     def unit_postfix
-      return "" unless include_unit_in_title?
-      " (#{unit || "pages"}#{" per day" if cmd.wrap_per_day})"
+      return "" if !include_unit_in_title? || unit.nil?
+      " (#{unit}#{" per day" if cmd.wrap_per_day})"
     end
 
     def include_unit_in_title?
@@ -204,20 +207,18 @@ module Readstat
     end
 
     def values_to_f(results)
-      convert(results, :to_f) { |float| float.to_i == float ? float.to_i : float }
+      convert(results, :to_f) do |float|
+        if float.to_i == float
+          float.to_i
+        else
+          float.round(2)
+        end
+      end
     end
 
     def values_to_s(results)
       convert(results, :to_s)
     end
-
-    # def with_any_values(hash)
-    #   convert(hash, :float_or_string)
-    # end
-
-    # def float_or_string(v)
-    #   Float(v, exception: false) || String(v)
-    # end
 
     def convert(results, target, &postconversion)
       if results.is_a? Hash
@@ -236,15 +237,5 @@ module Readstat
         return nil
       end
     end
-
-    # def table
-    #   tab = Tabulo::Table.new([1, 2, 5]) do |t|
-    #     t.add_column(:itself)
-    #     t.add_column(:even?,
-    #       styler: -> (cell_value, s) { cell_value ? Colors.green(s) : Colors.red(s) })
-    #     t.add_column(:odd?)
-    #   end
-    #   puts tab
-    # end
   end
 end

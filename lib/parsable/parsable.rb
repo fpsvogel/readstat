@@ -6,10 +6,11 @@ require_relative "../errors"
 module Readstat
   using Blank
 
+  # a Parsable is a word (more specifically a space-delimited sequence of
+  # characters) entered in the CLI.
   class Parsable
     using MapExtractFirst
-    attr_reader :name, :regex, :default
-    attr_accessor :value, :not_mode
+    attr_reader :name, :regex, :default, :value, :not_mode
     attr_private :parse, :has_single_value, :not_mode_possible
     private_class_method :new
 
@@ -46,7 +47,7 @@ module Readstat
       def extract_parsables(input, config)
         input_without_parsables = input
         my_parsables = all.each_with_object([]) do |(_name, parsable), my|
-          break my if one_per_command && my.compact.present?
+          break my if one_per_input && my.compact.present?
           new_value, new_not_mode, input_without_parsables =
             parsable.extract_value_from_input(input_without_parsables, config)
           my << parsable.with_value(new_value, new_not_mode)
@@ -54,7 +55,7 @@ module Readstat
         [my_parsables, input_without_parsables]
       end
 
-      def one_per_command
+      def one_per_input
         false
       end
     end
@@ -84,7 +85,8 @@ module Readstat
       [new_value, new_not_mode, input_without_parsable]
     end
 
-    # TODO: copy by creating new, as in Item; this is quick and dirty, using mutable state
+    # achieves an immutable public interface like in Item, but with a shortcut
+    # using protected (mutating) setters.
     def with_value(new_value = nil, new_not_mode = false)
       binding.pry if new_value.is_a? Filter
       return nil if new_value.nil? && default.nil?
@@ -101,6 +103,14 @@ module Readstat
 
     protected
 
+    def value=(new_value)
+      @value = new_value
+    end
+
+    def not_mode=(new_not_mode)
+      @not_mode = new_not_mode
+    end
+
     def match_captures(word)
       Array(regex).map do |single_regex|
         match = word.match(/^#{single_regex.source}$/)
@@ -113,7 +123,6 @@ module Readstat
     end
 
     def parse_not(new_value)
-      raise ArgumentError, "new_value is nil!" if new_value.nil? #RM if never nil
       new_not_mode = new_value.keys.first == :not
       [new_value.values.first, new_not_mode]
     end

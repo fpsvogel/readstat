@@ -20,38 +20,44 @@ class ResultTest < ReadstatTestWithItems
     self.class.clear_err_log
   end
 
-  def command_output(input, items = basic_items.values)
+  def output(input, items = basic_items.values)
+    Readstat::Command.parse(input, config.fetch(:item))
+                     .result(Readstat::Library.new(items, config.fetch(:item)))
+                     .output(config.fetch(:output))
+  rescue Readstat::AppError => e; err_block.call(e)
+  end
+
+  def captured_output(input, items = basic_items.values)
     output = with_captured_stdout(print_also: true) do
       Readstat::Command.parse(input, config.fetch(:item))
-                       .result(Readstat::Library.new(items, config.fetch(:item)))
-                       .output(config.fetch(:output))
-    end
+                      .result(Readstat::Library.new(items, config.fetch(:item)))
+                      .output(config.fetch(:output))
+      end
     Readstat::Colors.strip(output)
   rescue Readstat::AppError => e; err_block.call(e)
   end
 
   def test_depth_1
-    skip
+#    skip
     test_item = all_items[:podcast]
-    actual = command_output("average length", [test_item])
+    actual = captured_output("average length", [test_item])
     expected = test_item.length
     assert_equal actual, actual # expected.to_s + "\n", actual
   end
 
   def test_depth_2_table
-    skip
+#    skip
     test_items = items(:prequel, :podcast, :docu)
-    actual = command_output("average length monthly view=table", test_items)
-    expected = <<'EOM'.freeze
-# TODO
-EOM
-    assert_equal actual, actual
+    output("average length monthly view=table", test_items)
+    assert true
+    # capturing the output (even with assert_output) produces an error from
+    # TTY::Screen during table output.
   end
 
   def test_depth_2_bar
-    skip
+#    skip
     test_items = items(:prequel, :podcast, :docu)
-    actual = command_output("average length monthly view=bar", test_items)
+    actual = captured_output("average length monthly view=bar", test_items)
     expected = <<'EOM'.freeze
 # TODO
 EOM
@@ -59,9 +65,13 @@ EOM
   end
 
   def test_depth_2_pie
-    skip
+#    skip
     test_items = items(:prequel, :podcast, :docu, :novel)
-    actual = command_output("average length monthly view=pie", test_items)
+    actual = captured_output("average length monthly view=pie", test_items)
+    # TODO: problem: with this approach, tests are hard to maintain. if the
+    # output changes, then I must manually copy it and paste it here for each
+    # test... this one has already become out of date, which is why the next
+    # line below is commented out.
     expected = <<'EOM'.freeze
         ▅▅▅▅▅
     ▅▅▅▅▅▅▅▅▅▅▅▅▅
@@ -75,101 +85,106 @@ EOM
     ▅▅▅▅▅▅▅▅▅▅▅▅▅
         ▅▅▅▅▅
 EOM
+    # assert_equal actual, expected
     assert_equal actual, actual
   end
 
   def test_depth_3_table
-    skip
+#    skip
     test_items = items(:prequel, :podcast, :docu)
-    actual = command_output("average length monthly by genre view=table", test_items)
-    expected = nil
-    assert_equal actual, actual
+    output("average length monthly by genre view=table", test_items)
+    assert true
+    # capturing the output (even with assert_output) produces an error from
+    # TTY::Screen during table output.
   end
 
   def test_depth_3_bar
-    skip
+#    skip
     test_items = items(:prequel, :podcast, :docu)
-    actual = command_output("average length monthly by genre view=bar", test_items)
+    actual = captured_output("average length monthly by genre view=bar", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_depth_3_pie
-    skip
+#    skip
     test_items = items(:prequel, :podcast, :docu)
-    actual = command_output("average length monthly by genre view=pie", test_items)
+    actual = captured_output("average length monthly by genre view=pie", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_depth_4_table
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("count length monthly by genre view=table", test_items)
-    expected = nil
-    assert_equal actual, actual
+    output("count length monthly by genre view=table", test_items)
+    assert true
+    # capturing the output (even with assert_output) produces an error from
+    # TTY::Screen during table output.
   end
 
   def test_depth_4_bar
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("count length monthly by genre view=bar", test_items)
+    actual = captured_output("count length monthly by genre view=bar", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_depth_4_pie
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("count length monthly by genre view=pie", test_items)
+    actual = captured_output("count length monthly by genre view=pie", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_depth_5
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("list by rating monthly by genre", test_items)
-    expected = nil
-    assert_equal actual, actual
+    output("list by rating monthly by genre", test_items)
+    assert true
+    # capturing the output (even with assert_output) produces an error from
+    # TTY::Screen during table output.
   end
 
   def test_list
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("list by rating", test_items)
-    expected = nil
-    assert_equal actual, actual
+    output("list by rating", test_items)
+    assert true
+    # capturing the output (even with assert_output) produces an error from
+    # TTY::Screen during table output.
   end
 
   def test_list_numeric_view_not_allowed
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("list by rating view=bar", test_items)
+    actual = captured_output("list by rating view=bar", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_hours_unit
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("top lengths unit=hours view=bar", test_items)
+    actual = captured_output("top lengths unit=hours view=bar", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_pages_unit
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("top lengths unit=pages view=bar", test_items)
+    actual = captured_output("top lengths unit=pages view=bar", test_items)
     expected = nil
     assert_equal actual, actual
   end
 
   def test_pages_unit_alt_singular
-    skip
+#    skip
     test_items = items(:prequel, :booklet, :podcast, :docu)
-    actual = command_output("top lengths unit=page view=bar", test_items)
+    actual = captured_output("top lengths unit=page view=bar", test_items)
     expected = nil
     assert_equal actual, actual
   end

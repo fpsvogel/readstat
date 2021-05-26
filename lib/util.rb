@@ -42,17 +42,20 @@ module Readstat
   # 1. an array is mapped according to the given block.
   # 2. the first non-nil element is picked from the mapped array.
   # 3. its counterpart in (a copy of) the original array is deleted.
-  # 4. the picked element (#2) and the smaller array (#3) are returned.
+  # 4. the picked element (#2), the smaller array (#3), and the index of the
+  #    picked element are returned.
   module MapExtractFirst
     refine Array do
       def map_extract_first(&block)
+        # return to_enum(:map_extract_first) unless block_given? # error
         mapped = map(&block)
         match = mapped.compact.first
+        match_index = mapped.index(match)
         without_match = dup.tap do |self_dup|
           self_dup.delete_at(mapped.index(match) || self_dup.length) \
                                                               unless match.nil?
         end
-        [match, without_match]
+        [match, without_match, match_index]
       end
     end
   end

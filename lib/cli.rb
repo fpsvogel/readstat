@@ -14,14 +14,6 @@ module Readstat
   using Blank
 
   class CLI
-    # TODO: "help" command
-    EXAMPLES_HELP = [
-      ["top 3 ratings monthly 2019/5-2020",\
-        "# This date range goes to the end of 2020"],
-      ['list by rating genre=history,politics search="PBS Frontline"',\
-        "# No spaces in filters except in a search phrase!"]
-    ].freeze
-
     class << self
       protected
 
@@ -55,6 +47,15 @@ module Readstat
 
 def load(config_item, config_output)
 
+Command.help_examples = [
+  ["top 5 ratings monthly 2019/5-2020",
+    "# This date range goes to the end of 2020."],
+  ["2019/5-2020 monthly 5 top ratings",
+    "# The same command as above—the order of words does not matter."],
+  ['list by rating search="PBS Frontline" genre=history,politics',
+    "# No spaces allowed in filters, except in phrases in quotes!"]
+]
+
 command :average,
         %i[rating length amount],
         "Show average"
@@ -86,57 +87,57 @@ command :list,
         default_arg: :rating
 
 filter  :search,
-        ['search="TERMS"', "# Show items whose Name column includes any " \
+        ['search="TERMS"', "show items whose Name column includes any " \
           "of the specified search term(s)."]
 
 filter  :interval,
-        ["monthly/yearly", "# Show data for each month or year"],
+        ["monthly/yearly", "show data for each month or year"],
         [/(monthly)/, /(yearly)/]
 
 filter  :by_genre,
-        ["by genre OR genrely", "# Show data for each genre"],
+        ["by genre OR genrely", "show data for each genre"],
         /(by\s?genres?|genrely)/
 
 filter  :format,
-        ["format=FORMAT[,FORMAT,…]", "# Show items of the specified " \
+        ["format=FORMAT[,FORMAT,…]", "show items of the specified " \
           "format(s). Use != for NOT."]
 
 filter  :genre,
-        ["genre=GENRE[,GENRE,…]", "# Show items of any of the specified " \
+        ["genre=GENRE[,GENRE,…]", "show items of any of the specified " \
           "genre(s). Use != for NOT, double quotes for phrases."]
 
 filter  :source,
-        ["source=SOURCE[,SOURCE,…]", "# Show items from any of the specified " \
+        ["source=SOURCE[,SOURCE,…]", "show items from any of the specified " \
           "source(s). Use != for NOT, double quotes for phrases."]
 
 filter  :rating,
-        ["rating=#[,#,…]", "# Show items of any of the specified " \
+        ["rating=#[,#,…]", "show items of any of the specified " \
           "rating(s). Use != for NOT."]
 
 filter  :status,
-        ["status=STATUS[,STATUS,…", "# Show items of any of the specified " \
+        ["status=STATUS[,STATUS,…", "show items of any of the specified " \
           "status(es). Use != for NOT."],
         plural_ending: "es",
         default: [:done]
 
 filter  :length,
-        ["length=LENGTH[,LENGTH,…]", "# Show items of any of the specified length(s). Use != for NOT. "\
+        ["length=LENGTH[,LENGTH,…]", "show items of any of the specified length(s). Use != for NOT. "\
         + (config_item.fetch(:lengths)
                       .map do |label, length|
                         "#{label}: #{length.first}-#{length.last}"
                       end.join(", "))]
 
 filter  :timespan,
-        ["YYYY[/MM/DD][-YYYY/MM/DD]", "# Show items within a date range"],
+        ["YYYY[/MM/DD][-YYYY/MM/DD]", "show items within a date range"],
         %r{(\d{4}(?:/\d?\d(?:/\d?\d)?)?)(?:(?:-)(\d{4}(?:/\d?\d(?:/\d?\d)?)?))?}
 
 output_option :view,
-              ["view=VIEW", "# Show results in the specified view: " \
+              ["view=VIEW", "show results in the specified view: " \
               + config_output.fetch(:views).join(", ")],
               default: :table
 
 output_option :unit,
-              ["unit=UNIT", "# Show results in the specified unit: " \
+              ["unit=UNIT", "show results in the specified unit: " \
               + config_output.fetch(:views).join(", ")]
 
 
@@ -150,8 +151,7 @@ specify :average,
         },
         consolidate_rereads: false,
         special_data: { amount: ->(cmd) { cmd.lib.amounts_per_day(cmd.filters) } },
-        wrap_per_day: { # length: ->(len) { len.to_f.zero? ? nil : len },
-                        amount: ->(avg) { Item::LengthPerDay.new(avg) } }
+        wrap_per_day: { amount: ->(avg) { Item::LengthPerDay.new(avg) } }
 
 
 specify :count,
@@ -191,26 +191,37 @@ specify :count,
             cmd.query(superqueries, label: grouping)
           end
           cmd.set_filter(cmd.arg, orig_filter)
+          # TODO: add option to show zeroes
           results = results.reduce({}, :merge)
-                           .reject { |_grouping, result| empty_or_zero?(result) } # TODO: option to show zeroes
+                           .reject { |_grouping, result| empty_or_zero?(result) }
           sort.call(results)
         }
 
-def ranked_items(items_and_data, number, order: :top)
+def ranked_items(items_and_data, number, order: :top, reject_zeroes: false)
   if items_and_data.nil? then []
   else
     items_and_data.sort_by do |item, datum|
                     [datum,
-                     item.date_finished,
-                     item.date_started,
-                     item.date_added,
-                     item.title]
+                      item.date_finished,
+                      item.date_started,
+                      item.date_added,
+                      item.title]
+                  end
+                  .then do |list|
+                    if reject_zeroes
+                      list.delete_if { |item, data| data.pages.zero? }
+                    else
+                      list
+                    end
                   end
                   .then do |list|
                     { top: list.reverse, bottom: list }[order]
                   end
                   .take(number)
-                  .map { |item, datum| ["#{item.title} (#{item.date_finished})", datum] }
+                  .map do |item, datum|
+                    author = "#{item.author} - " unless item.author.nil?
+                    ["#{author}#{item.title} (#{item.date_finished})", datum]
+                  end
                   .to_h
   end
 end
@@ -251,7 +262,10 @@ specify :top,
 
 specify :bottom,
         run: proc { |items_and_data, cmd|
-          ranked_items(items_and_data, cmd.number_arg, order: :bottom)
+          raw = ranked_items(items_and_data, cmd.number_arg, order: :bottom,
+                             reject_zeroes: cmd.arg == :length)
+                # exclude zero-length items, which are caused by DNFs where no
+                # percentage is set (because they default to 0%).
         },
         run_special:
         {
@@ -266,20 +280,7 @@ specify :bottom,
                         speed: list_wrap_per_day }
 
 
-def join_by_and_genre(input)
-  input.each_with_index do |word, i|
-    next_word = input[i + 1]
-    next unless word == "by" && next_word.match?(/genres?/)
-    input[i] = "by #{next_word}"
-    input.delete_at(i + 1)
-    break
-  end
-end
-
 specify :list,
-        preparse: proc { |input, _cmd|
-          join_by_and_genre(input)
-        },
         run: proc { |list, cmd|
           list.flat_map { |entry| Array(entry[cmd.arg]).map { |datum| [datum, entry] } }
               .group_by(&:first)
@@ -291,9 +292,11 @@ specify :list,
                   .sort_by do |entry|
                     [entry[:dates_finished].max, entry[:title]]
                   end
-                entries.map! do |entry|
-                  entry[:dates_finished] = entry[:dates_finished].join(", ")
-                  entry
+                # print each date simply, not with Date#to_s
+                entries.each do |entry|
+                  entry[:dates_finished].define_singleton_method(:to_s) do
+                    join(", ")
+                  end
                 end
                 [group_key, entries]
               end
@@ -301,7 +304,6 @@ specify :list,
         },
         special_data: ->(cmd) { cmd.lib.list(cmd.filters) },
         consolidate_rereads: false
-        #   = "list [[by] rating/length/genre/date]"
 
 
 specify :search,
@@ -338,11 +340,20 @@ specify :interval,
             cmd.query(superqueries, label: label.call(interval))
           end
           cmd.set_filter(:timespan, orig_filter)
-          results.reduce({}, :merge).reject do |_interval, result| # TODO: option to show zeroes
-            empty_or_zero?(result)
-          end
+          # TODO: add option to show zeroes
+          results.reduce({}, :merge)
+                 .reject { |_interval, result| empty_or_zero?(result) }
         }
 
+
+def join_by_and_genre(input)
+  input.each_with_index do |word, i|
+    next_word = input[i + 1]
+    next unless word == "by" && next_word.match?(/genres?/)
+    input[i] = "by #{next_word}"
+    input.delete_at(i + 1)
+  end
+end
 
 specify :by_genre,
         preparse: lambda { |input, _filter|
@@ -355,9 +366,19 @@ specify :by_genre,
             cmd.set_filter(:genre, [genre])
             cmd.query(superqueries, label: genre)
           end
-          cmd.set_filter(:genre, orig_filter) # .compact.presence
+          cmd.set_filter(:genre, orig_filter)
+          # TODO: add option to show zeroes
           results.reduce({}, :merge)
-                 .reject { |_genre, result| empty_or_zero?(result) } # TODO: option to show zeroes
+                 .reject { |_genre, result| empty_or_zero?(result) }
+                 .then do |hash|
+                   if !hash.values.first.is_a?(Hash)
+                     hash.sort_by { |_genre, result| result }
+                         .reverse
+                         .to_h
+                   else
+                     hash
+                   end
+                 end
         }
 
 
@@ -387,7 +408,13 @@ specify :source,
 
 specify :rating,
         not_mode_possible: true,
-        parse: proc { |f| f&.split(",")&.map(&:to_i) },
+        parse: proc { |f|
+          f&.split(",")&.map do |str|
+            Integer(str, exception: false) ||
+              Float(str, exception: false) ||
+              raise(InputError, '"rating" takes only numbers.')
+          end
+        },
         run: proc { |f, item, not_mode| item if Array(f).include?(item.rating) ^ not_mode }
 
 
@@ -410,6 +437,9 @@ specify :length,
             Item::LengthRange.new(length_array[0], length_array[1],
                                   config_length,
                                   label: (length_input unless from_config.nil?))
+          rescue ArgumentError
+            raise InputError, 'Invalid length range. Must be two lengths ' \
+                              '(pages or hh:mm) with a hyphen in between.'
           end
         },
         run: proc { |f, item, not_mode|

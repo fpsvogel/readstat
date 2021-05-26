@@ -8,44 +8,6 @@ require_relative "lib/library/library"
 require_relative "lib/input"
 require_relative "lib/parsable/command"
 
-# TODO: see if no repeated warnings in output due to splitting items, because Item.create's warn parameter is not used anywhere! (was a named arg with this comment: # warn is not a keyword argument so as not to require ** before data and template args)
-
-# go thru constructor rather than .dup, for validation reasons (Style Guide 4.10)
-# avoid nil result: return empty or null object pattern (?)
-# avoid conditionals!
-# don't have literals in methods if often called; instead: @inst_var ||= { a: 1, b: 2 }
-# avoid object literals in loops, or (if strings) can freeze them for same effect
-# memoize expensive computations (and return frozen objects?)
-# define <=> and eql? + hash for Length
-# if Hash#has_key: safer than if Hash#[]
-# Hash#fetch(key, default): safer than default value
-# Noback 2.4: don't have optional constructor arguments for services; for empty dependency, use null object instead
-# Noback 2.7.2: Turn complicated functions into object dependencies
-
-# https://dry-rb.org/gems/dry-validation/1.6/
-  # or make value objects for everything, with validation in constructor? (Style Guide 3.6)
-# https://dry-rb.org/gems/dry-types/1.2/
-# https://dry-rb.org/gems/dry-struct/1.0/
-
-# TODO: watch for LoD violations
-# TODO: move missing field checks from LoadLibrary now to Item::Validation
-# TODO: look into dry-validation and other alternatives
-# TODO: change to functional-OOP style, avoiding mutation; see https://youtu.be/rMxurF4oqsc
-      # .with_ + new object instead of change state
-        # do this for COMMAND and FILTER!
-      # avoid .each and other destructive procedures
-      # use .fetch on hash wherever value MUST be there
-# TODO: use pastel instead of colorize https://github.com/piotrmurach/pastel
-# TODO: output raw with awesome-print https://github.com/awesome-print/awesome_print
-# TODO: test all with raw output
-# TODO: make Result/ShowOutput, and ...
-# TODO: ? postprocess all with: delete_if result == 0 XXXX DO THIS IN RESULT INSTEAD
-# TODO: Parser, Item constants to methods
-# TODO: then do superqueries in VARIABLE order, and detect order in cli_base
-# TODO: implement endless methods once Ruby 3 comes out
-# TODO: make Command less mutable
-# TODO: write tests for pipe.rb
-
 module Readstat
   @err_block = ->(err) { err.show }
   CLI.load(config.fetch(:item), config.fetch(:output))

@@ -3,34 +3,16 @@
 require_relative "parsable"
 
 module Readstat
+
+  # an Option is any non-command entered in the CLI, such as "view=pie".
   class Option < Parsable
+    attr_reader :description
     private_class_method :new
 
-    # class << self
-    #   def parse(input, config = nil)
-    #     options, input_without_options = extract_options(input, config)
-    #     options = options.map do |option|
-    #       [option.name, option]
-    #     end.to_h
-    #     [options, input_without_options]
-    #   end
-
-    #   protected
-
-    #   def extract_options(input, config)
-    #     input_without_options = input
-    #     my_options = all.map do |_name, option|
-    #       new_value, new_not_mode, input_without_options =
-    #         option.extract_value_from_input(input_without_options, config)
-    #       option.with_value(new_value, new_not_mode)
-    #     end.compact
-    #     [my_options, input_without_options]
-    #   end
-    # end
-
-    def initialize(name, desc, regex = nil, plural_ending: "s", default: nil)
+    def initialize(name, description, regex = nil,
+                   plural_ending: "s", default: nil)
       @name = name.to_sym
-      @desc = desc
+      @description = description
       @regex = regex || default_regex(plural_ending)
       @default = default
       @not_mode = false

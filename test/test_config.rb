@@ -83,7 +83,6 @@ module Readstat
       },
     input:
       {
-        default_input:      "a l monthly genrely",
         exit:               %w[exit e quit q !!!]
       },
     output:

@@ -5,24 +5,10 @@ require_relative "../errors"
 require_relative "../item/item"
 require_relative "library"
 
-# TODO: default column loading behavior, so that new columns and fields can easily be added
-# TODO: then automatically make a new filter for each custom column
-
 module Readstat
   using Blank
 
   class Library
-    # feeds a file line by line, in the same way as String#each_line
-    # class FileFeed
-    #   attr_private_initialize :path
-
-    #   def each_line(&block)
-    #     IO.foreach(path) { |line| block.call(line) }
-    #   rescue Errno::ENOENT
-    #     raise FileError.new(path, label: "File not found!")
-    #   end
-    # end
-
     # LoadItems is a function that parses CSV lines into Items.
     class LoadItems
       using HashToAttr
@@ -42,8 +28,8 @@ module Readstat
         feed.each_line do |line|
           @cur_line = line.strip
           next if header? || comment? || blank_line?
-          items += CSVLine.new(cur_line, config_load, config_item, &err_block)
-                          .items
+          items += ParseCSVLine.new(config_load, config_item)
+                               .call(cur_line, &err_block)
         rescue InvalidLineError, ValidationError => e
           err_block.call(e)
           next
@@ -70,28 +56,31 @@ module Readstat
         cur_line.empty?
       end
 
-      # parses a line into an array of Item data
-      class CSVLine
+      # ParseCSVLine is a function that parses a line in a CSV reading library
+      # into an array of Items.
+      class ParseCSVLine
         using HashToAttr
-        attr_private :line, :formats_regex
+        attr_private :line, :formats_regex, :config_item
         attr_reader  :items
 
-        def initialize(line, config_load, config_item, &err_block)
+        def initialize(config_load, config_item)
           config_load.merge(config_item.slice(:formats)).to_attr_private(self)
-          @line          = line
           @formats_regex = formats.values.join("|")
-          @items         = parse_items(config_item, &err_block)
+          @config_item = config_item
         end
 
-        private
-
-        def parse_items(config_item, &err_block)
-          split_multi_names(columns[:name]).map.with_index do |name, i|
+        def call(line, &err_block)
+          @line = line
+          items = split_multi_names(columns[:name]).map.with_index do |name, i|
             data = parse_item_data(columns, name, config_item.fetch(:template))
             Item.create(data, config_item, line, warn: i.zero?, &err_block)
             # i.zero?: warn only once for this line, in case of multiple items
           end.compact
+          @line = nil
+          items
         end
+
+        private
 
         def columns
           return @columns unless @columns.nil?
@@ -169,10 +158,6 @@ module Readstat
           isbns[0]&.to_s
         end
 
-        # def isbn_prep(sources_str)
-        #   sources_str.gsub(separator, " ")
-        # end
-
         def isbns_and_urls_regex
           return @sources_regex unless @sources_regex.nil?
           isbn = "(#{isbn_or_asin_regex.source})"
@@ -183,17 +168,7 @@ module Readstat
           @sources_regex = /#{isbn}|#{url_prename}|#{url_postname}|#{url}/
         end
 
-        # TODO: (?<=^|\s|,)(?:\d{3}[-\s]?)?[A-Z\d]{10}(?=\s|,|\z)|[^,]+ - https?:\/\/[^\s,]+|https?:\/\/[^\s,]+ - [^,\n]+|https?:\/\/[^\s,]+
         def sources(columns, _=nil)
-          #without_isbns = columns[:sources].gsub(isbn_or_asin_regex, "")
-          #spaceless_sourcename_separator = "----"
-          #without_isbns
-          # columns[:sources]
-          #   #.gsub(name_separator, spaceless_sourcename_separator)
-          #   .split(sources_separator)
-          #   .reject { |source| source.match?(isbn_or_asin_regex) }
-          #   .map { |source| source.strip.split(name_separator) }
-          #regex = /(?<=\A|\s|#{sep})((?:\d{3}[-\s]?)?[A-Z\d]{10})(?=\z|\s|#{sep})|([^#{sep}]+) - (https?:\/\/[^\s#{sep}]+)|(https?:\/\/[^\s#{sep}]+) - ([^#{sep}]+)|(https?:\/\/[^\s#{sep}]+)/
           urls = columns[:sources]
                   .scan(isbns_and_urls_regex)
                   .map(&:compact)

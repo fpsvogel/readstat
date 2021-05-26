@@ -136,15 +136,16 @@ module Readstat
       end
 
       def format(type)
-        number = if pages.zero? ||
-                    (type == :pages && pages > 1) ||
-                    (type == :hours && hours >= 100)
-                  send(type).round
-                elsif type == :hours && hours >= 0.1
-                  send(type).round(1)
-                else
-                  BigDecimal(send(type), 1).to_f
-                end
+        return "infinity" if pages == Float::INFINITY
+        number =  if pages.zero? ||
+                      (type == :pages && pages > 1) ||
+                      (type == :hours && hours >= 100)
+                    send(type).round
+                  elsif type == :hours && hours >= 0.1
+                    send(type).round(1)
+                  else
+                    BigDecimal(send(type), 1).to_f
+                  end
         commas(number)
       end
 
