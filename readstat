@@ -11,6 +11,9 @@ require_relative "lib/parsable/command"
 module Readstat
   @err_block = ->(err) { err.show }
   CLI.load(config.fetch(:item), config.fetch(:output))
+  if !ARGV.empty? && File.exist?(ARGV.first)
+    config[:load][:path] = ARGV.shift
+  end
 
   library = Library.load(config.fetch(:load), config.fetch(:item), &@err_block)
   Input.new(config.fetch(:input))

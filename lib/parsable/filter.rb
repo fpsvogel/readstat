@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "pry"
 require_relative "../util"
 require_relative "option"
 
@@ -29,7 +28,6 @@ module Readstat
       return item if @run.nil?
       all_other_args = other_args.dup
       all_other_args.unshift(not_mode) if not_mode_possible
-      binding.pry if value.is_a? Filter
       @run.call(value, item, *all_other_args)
     end
   end

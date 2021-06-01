@@ -20,26 +20,9 @@ module Readstat
                                     config_item.fetch(:length),
                                     config_item.fetch(:sources),
                                     &err_block)
-      data = filled_in(data, config_item.fetch(:template))
-      validated_data = validate.call(data, line, warn: warn)
+      validated_data = validate.call(data, config_item.fetch(:template),
+                                     line, warn: warn)
       new(validated_data, config_item, id)
-    end
-
-    private_class_method def self.filled_in(data, template)
-      return data if template.nil?
-      data = template.merge(data) do |_field, from_template, from_data|
-        from_data.nil? ? from_template : from_data
-      end
-      data.merge({ perusals: filled_in_perusals(data[:perusals], template) })
-    end
-
-    private_class_method def self.filled_in_perusals(perusals, template)
-      return perusals unless perusals.all? { |perusal| perusal.is_a? Hash }
-      perusals.map do |perusal|
-        template[:perusals].first.merge(perusal) do |_key, from_template, from_data|
-          from_data.nil? ? from_template : from_data
-        end
-      end
     end
 
     def initialize(new_data, config_item, id = nil)

@@ -23,8 +23,8 @@ module Readstat
     class << self
       attr_accessor :help_examples
 
-      def parse(input_str, config_item)
-        input = input_str.split(" ")
+      def parse(input, config_item)
+        input = input.split(" ") unless input.is_a? Array
         if input.first == "help"
           if input.length > 1
             raise InputError, "The help command does not take any arguments."

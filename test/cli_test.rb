@@ -13,7 +13,7 @@ class CLITest < ReadstatTestWithItems
   Readstat::CLI.load(@config.fetch(:item), @config.fetch(:output))
   @err_block = lambda do |err|
     @err_log << err
-    #err.show
+    err.show
   end
 
   def setup
@@ -391,13 +391,13 @@ class CLITest < ReadstatTestWithItems
   def test_manual_length_filter_pages
 #    skip
     short_medium_keys = titles(:prequel, :booklet, :prequel, :podcast, :docu, :movie, :tome)
-    filter_test("length=0-400", short_medium_keys) # TODO: bad input test
+    filter_test("length=0-400", short_medium_keys)
   end
 
   def test_manual_length_filter_hours
 #    skip
     short_medium_keys = titles(:prequel, :booklet, :prequel, :podcast, :docu, :movie, :tome)
-    filter_test("length=0-10:00", short_medium_keys) # TODO: bad input test
+    filter_test("length=0-10:00", short_medium_keys)
   end
 
   def test_search_filter

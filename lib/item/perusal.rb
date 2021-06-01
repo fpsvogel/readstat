@@ -49,6 +49,10 @@ module Readstat
         0
       end
 
+      def blank?
+        date_added.nil? && date_started.nil? && date_finished.nil?
+      end
+
       class << self
         private
 

@@ -12,11 +12,23 @@ The reading log looks like this:
 
 ## Usage
 
+For a sample reading log, see [`read.csv`](https://github.com/fpsvogel/readstat/blob/main/lib/config.rb).
+
 To start the app, download and extract the source code, then run:
+
+    ruby readstat FILEPATH
+
+Where FILEPATH is the path of your CSV log file.
+
+You can also enter your log filepath into `lib/readstat.rb`, then simply run:
 
     ruby readstat
 
-For instructions, enter `help` in the app, or see [`cli.rb`](https://github.com/fpsvogel/readstat/blob/main/lib/cli.rb#L50).
+To run a single command straight from the command line, you can enter it as arguments, e.g.:
+
+    ruby readstat average length
+
+For instructions on commands, enter `help` in the app, or see [`cli.rb`](https://github.com/fpsvogel/readstat/blob/main/lib/cli.rb#L50).
 
 ## Contributing
 

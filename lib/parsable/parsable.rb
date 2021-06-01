@@ -88,7 +88,6 @@ module Readstat
     # achieves an immutable public interface like in Item, but with a shortcut
     # using protected (mutating) setters.
     def with_value(new_value = nil, new_not_mode = false)
-      binding.pry if new_value.is_a? Filter
       return nil if new_value.nil? && default.nil?
       copy = dup
       copy.value = new_value || default

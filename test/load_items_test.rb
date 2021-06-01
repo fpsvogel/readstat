@@ -7,18 +7,11 @@ require "library/load_items"
 require "library/library"
 require "item/item"
 
-# TODO: remove req. for genre, make a default Uncategorized genre, then adjust test Items
-# TODO: how does blank Rating affect calculations?
-
-# TODO: test that dates can be in ascending or descending order
-# TODO: test warnings vs errors for blanks
-# TODO: make null source, so that sourceless items appear in charts too
-
 class LoadItemsTest < ReadstatTest
   @config = Readstat.config
   @err_block = lambda do |err|
     @err_log << err
-    #err.show
+    err.show
   end
 
   module Files
@@ -31,12 +24,12 @@ class LoadItemsTest < ReadstatTest
       \\Ruby on Rails Tutorial
       \\------ DONE READING
       5|⚡Sandi Metz - Practical Object-Oriented Design: An Agile Primer Using Ruby|B07F88LY9M https://lexpublib.overdrive.com/media/4166664|2020-09-10,2020-11-1|2020-09-20,2020-11-15|rubyrails|286|A revelation. Must re-read soon.
-      4|Paradise Lost|B0042JSMDW, Little Library|#2019-08-15;2020-09-01|2020-10-25|poetry|453
+      4|📕Paradise Lost|B0042JSMDW, Little Library|#2019-08-15;2020-09-01|2020-10-25|poetry|453
     EOM
     OMIT_HEADINGS = <<~EOM.freeze
        |🔊The Jedi Doth Return [William Shakespeare's Star Wars, #6]|159474713X, http://iandoescher.com/ - author|2020-11-05| |drama, poetry|3:33
       5|⚡Sandi Metz - Practical Object-Oriented Design: An Agile Primer Using Ruby|B07F88LY9M https://lexpublib.overdrive.com/media/4166664|2020-09-10,2020-11-1|2020-09-20,2020-11-15|rubyrails|286|A revelation. Must re-read soon.
-      4|Paradise Lost|B0042JSMDW, Little Library|#2019-08-15;2020-09-01|2020-10-25|poetry|453
+      4|📕Paradise Lost|B0042JSMDW, Little Library|#2019-08-15;2020-09-01|2020-10-25|poetry|453
     EOM
     GROUPED_ITEMS = <<~EOM.freeze
       2|DNF podcasts 🔊FiveThirtyEight Politics 🔊The NPR Politics Podcast 🔊Pod Save America| |2020-08-24|2020-08-24|politics|0:30|Not very deep. Disappointing.
@@ -49,6 +42,9 @@ class LoadItemsTest < ReadstatTest
     EOM
     DNF_PERCENTS_IN_DATES = <<~EOM.freeze
       2|🔊FiveThirtyEight Politics| |2020-08-24,2020-12-01|DNF 50% 2020-08-24,DNF 2020-12-01|politics|0:30|Not very deep. Disappointing.
+    EOM
+    DATES_REVERSE_ORDER = <<~EOM.freeze
+      5|⚡Sandi Metz - Practical Object-Oriented Design: An Agile Primer Using Ruby|B07F88LY9M https://lexpublib.overdrive.com/media/4166664|2020-11-1,2020-09-10|2020-11-15,2020-09-20|rubyrails|286|A revelation. Must re-read soon.
     EOM
     OMIT_SOME_DATES_STARTED = <<~EOM.freeze
       2|DNF 🔊Pod Save America| |2020-08-24|2020-08-24,2021-01-01,2021-02-01|politics|0:30|Not very deep. Disappointing.
@@ -83,33 +79,35 @@ class LoadItemsTest < ReadstatTest
     EOM
     # the Title part of the Name column must not be blank
     BLANK_TITLE_ERROR = <<~EOM.freeze
-      |🔊 🔊some title||||some genre|300
+      |🔊 🔊some title|||||300
     EOM
-    # TODO: remove dates here and in item hash below, with warning still showing
-    # TODO: supply separate error blocks for warning and error
     BLANK_COLUMN_WARNING = <<~EOM.freeze
-      |some title||2021-01-01|2021-01-01|some genre|300
+      |some title||2021-01-01|2021-01-01||300
+    EOM
+    BLANK_COLUMN_NO_WARNING_FOR_CURRENT_OR_WILL = <<~EOM.freeze
+      |some title||2021-01-01|||300
+      |some title|||||300
     EOM
     # error only if nonsense Rating, Dates, or Length
     VALID_NONSENSE = <<~EOM.freeze
       |🤪123 - .||||456|9999999999
     EOM
     INVALID_RATING = <<~EOM.freeze
-      A|some title||||some genre|300
+      A|some title|||||300
     EOM
     # Dates must be parsable
     INVALID_DATES_PARSE = <<~EOM.freeze
-      |some title||2020-05-27|2020-052-29|some genre|300
+      |some title||2020-05-27|2020-052-29||300
     EOM
     # Dates must make logical sense. Here there is more than one additional
     # start date than end dates. every start date must have an end date except
     # for the last (meaning it's in progress and not yet finished).
     INVALID_DATES_COUNT = <<~EOM.freeze
-      |some title||2020-05-27,2020-06-01,2020-07-01|2020-05-29|some genre|300
+      |some title||2020-05-27,2020-06-01,2020-07-01|2020-05-29||300
     EOM
     # Dates are not in the right order
     INVALID_DATES_ORDER = <<~EOM.freeze
-      |some title||2020-05-29|2020-05-27|some genre|300
+      |some title||2020-05-29|2020-05-27||300
     EOM
     # Length must be an integer (for pages) or h:mm (hours and minutes)
     INVALID_LENGTH = <<~EOM.freeze
@@ -172,10 +170,25 @@ class LoadItemsTest < ReadstatTest
       ),
       blank: Readstat::Item.create(
         { title: "some title",
-          genres: ["some genre"],
           perusals: [{ date_started:  "2021-01-01",
-            date_finished: "2021-01-01",
-            progress:      100 }],
+                       date_finished: "2021-01-01",
+                       progress:      100 }],
+          length: 300 },
+        config.fetch(:item)
+      ),
+      blank_current: Readstat::Item.create(
+        { title: "some title",
+          perusals: [{ date_started:  "2021-01-01",
+                       date_finished: nil,
+                       progress:      0 }],
+          length: 300 },
+        config.fetch(:item)
+      ),
+      blank_will: Readstat::Item.create(
+        { title: "some title",
+          perusals: [{ date_started:  nil,
+                       date_finished: nil,
+                       progress:      0 }],
           length: 300 },
         config.fetch(:item)
       ),
@@ -268,13 +281,17 @@ class LoadItemsTest < ReadstatTest
   end
 
   def invalid_line(path, items = [])
-    loaded = Readstat::Library.load(File.open(path),
-                                    config.fetch(:load),
-                                    config.fetch(:item),
-                                    &err_block)
-                              .items
-    refute_empty err_log
+    loaded = load_library(path).items
     assert_equal items, loaded
+    refute err_log.empty?
+    refute err_log.all? { |error| error.is_a? Readstat::Warning }
+  end
+
+  def warned_line(path, items = [])
+    loaded = load_library(path).items
+    assert_equal items, loaded
+    refute err_log.empty?
+    assert err_log.all? { |error| error.is_a? Readstat::Warning }
   end
 
   def test_typical
@@ -313,6 +330,12 @@ class LoadItemsTest < ReadstatTest
     items = [all_items[:pod1_half],
              all_items[:pod1].with_dates("2020-12-01", "2020-12-01")]
     assert_equal items, load_library("dnf_percents_in_dates.csv").items
+  end
+
+  def test_dates_can_be_in_ascending_or_descending_order
+#    skip
+    items = all_items.slice(:metz, :metz_reread).values
+    assert_equal items, load_library("dates_reverse_order.csv").items
   end
 
   def test_may_omit_some_dates_started_for_single_days
@@ -377,7 +400,13 @@ class LoadItemsTest < ReadstatTest
 
   def test_warn_about_any_other_blanks
 #    skip
-    invalid_line("blank_column_warning.csv", [all_items[:blank]])
+    warned_line("blank_column_warning.csv", [all_items[:blank]])
+  end
+
+  def test_dont_warn_about_other_blanks_if_status_is_current_or_will
+#    skip
+    items = all_items.slice(:blank_current, :blank_will).values
+    assert_equal items, load_library("blank_column_no_warning_for_current_or_will.csv").items
   end
 
   def test_nonsense_input_OK_unless_rating_or_dates_or_length

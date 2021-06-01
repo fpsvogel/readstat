@@ -21,7 +21,7 @@ module Readstat
         @cur_line          = nil
       end
 
-      # retuns Items in the same order as they arrive from feed
+      # retuns Items in the same order as they arrive from feed.
       def call(feed = nil, close_feed: true, &err_block)
         feed ||= File.open(path)
         items = []
@@ -37,6 +37,8 @@ module Readstat
         items
       rescue Errno::ENOENT
         raise FileError.new(path, label: "File not found!")
+      rescue Errno::EISDIR
+        raise FileError.new(path, label: "The library must be a file, not a directory!")
       ensure
         feed&.close if close_feed && feed.respond_to?(:close)
         initialize(config_load, config_item) # reset to pre-call state
@@ -74,7 +76,7 @@ module Readstat
           items = split_multi_names(columns[:name]).map.with_index do |name, i|
             data = parse_item_data(columns, name, config_item.fetch(:template))
             Item.create(data, config_item, line, warn: i.zero?, &err_block)
-            # i.zero?: warn only once for this line, in case of multiple items
+            # i.zero?: warn only once for this line, in case of multiple items.
           end.compact
           @line = nil
           items
@@ -87,18 +89,13 @@ module Readstat
           @columns = csv_columns
                     .zip(line.split(column_separator))
                     .to_h
-          raise InvalidLineError.new(line) if any_columns_missing?(@columns) ||
-                                              any_important_columns_empty?(@columns)
+          raise InvalidLineError.new(line) if any_important_columns_empty?(@columns)
           @columns
         end
 
-        def any_columns_missing?(columns)
-          columns.except(:notes).values.any?(&:nil?)
-        end
-
         def any_important_columns_empty?(columns)
-          columns.slice(:name, :genre, :length)
-                .values.any? { |col| col.strip.empty? }
+          columns.slice(*error_if_blank)
+                 .values.any? { |col| col.nil? || col.strip.empty? }
         end
 
         def split_multi_names(names_column)
@@ -117,9 +114,9 @@ module Readstat
         def rating(columns, _=nil)
           rating = columns[:rating].strip
           return nil if rating.empty?
-          number = Integer(rating, exception: false) || Float(rating, exception: false)
-          number \
-          || (raise InvalidLineError.new(line))
+          Integer(rating, exception: false) \
+            || Float(rating, exception: false) \
+            || (raise InvalidLineError.new(line))
         end
 
         def format(_=nil, name)
@@ -177,7 +174,7 @@ module Readstat
                     .gsub(isbns_and_urls_regex, separator)
                     .split(separator)
                     .reject { |name| name.strip.empty? }
-          urls + names
+          (urls + names).presence
         end
 
         def sources_separator
@@ -210,7 +207,7 @@ module Readstat
         def merge_progresses(columns, date_perusals, progresses_in_dates)
           if progresses_in_dates.compact.presence
             final_progresses = progresses_in_dates
-            # DNF must not be indicated in the two columns at the same time
+            # DNF must not be indicated in the two columns at the same time.
             raise(InvalidLineError.new(line)) unless progress(columns[:name]).nil?
           else
             final_progresses = [progress(columns[:name])] * date_perusals.count
@@ -270,14 +267,12 @@ module Readstat
             .split(separator)
             .map(&:strip)
             .map(&:presence)
-            .compact.presence \
-            || raise(InvalidLineError.new(line))
+            .compact.presence
         end
 
         def length(columns, _=nil)
           len = columns[:length].strip
-          len.match(/\d+:\d\d/)
-            .to_s.presence \
+          len.match(/\d+:\d\d/).to_s.presence \
             || Integer(len, exception: false) \
             || raise(InvalidLineError.new(line))
         end

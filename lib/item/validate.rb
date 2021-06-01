@@ -9,7 +9,7 @@ require "io/console"
 
 module Readstat
   class Item
-    # Validate is a function that checks Item data, and possibly corrects it.
+    # Validate is a function that checks Item data and corrects it if necessary.
     class Validate
       using Blank
       using HashToAttr
@@ -24,19 +24,39 @@ module Readstat
       end
 
       # takes a hash item_data. returns valid data (a hash) or nil.
-      def call(item_data, line, warn: true)
-        item_data = item_data
+      def call(item_data, item_template, line, warn: true)
+        with_perusals_filled_in = filled_in(item_data,
+                                            item_template.slice(:perusals))
+        with_perusals_wrapped = wrap_perusals(with_perusals_filled_in)
+        wrap_perusals_again = item_template.fetch(:perusals).first.values.any?
+        warn_about_blanks(with_perusals_wrapped, line) if warn
+        item_data = filled_in(with_perusals_wrapped, item_template)
           .then { |data| wrap_length(data) }
           .then { |data| wrap_sources(data) }
-          .then { |data| wrap_perusals(data) }
-          .then { |data| verify_perusals_have_enough_dates_finished(data) }
-        warn_about_blanks(item_data, line) if warn
+          .then { |data| (wrap_perusals(data) if wrap_perusals_again) || data }
         item_data
       rescue InvalidDateError => e
         raise error_with_line(e, line)
       end
 
       protected
+
+      def filled_in(data, template)
+        return data if template.nil?
+        data = template.merge(data) do |_field, from_template, from_data|
+          from_data.nil? ? from_template : from_data
+        end
+        data.merge({ perusals: filled_in_perusals(data[:perusals], template) })
+      end
+
+      def filled_in_perusals(perusals, template)
+      return perusals unless perusals.all? { |perusal| perusal.is_a? Hash }
+      perusals.map do |perusal|
+        template[:perusals].first.merge(perusal) do |_key, from_template, from_data|
+          from_data.nil? ? from_template : from_data
+        end
+      end
+    end
 
       def warn_about_blanks(data, line)
         blanks = warn_if_blank.select do |keys, _|
@@ -99,13 +119,10 @@ module Readstat
             Perusal.create(*raw_perusal)
           end
         end.sort
-        data.merge({ perusals: wrapped_perusals })
-      end
-
-      def verify_perusals_have_enough_dates_finished(data)
+        # verify that the perusals have enough dates finished.
         raise InvalidDateError unless \
-          data.fetch(:perusals).select { |p| p.status == :current }.count <= 1
-        data
+          wrapped_perusals.select { |p| p.status == :current }.count <= 1
+        data.merge({ perusals: wrapped_perusals })
       end
     end
   end

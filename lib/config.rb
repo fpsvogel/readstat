@@ -9,7 +9,7 @@ module Readstat
   {
     load:
       {
-        path:                     '/mnt/c/Users/User1/Dropbox/Apps/SimpleText/read.csv',
+        path:                     'read.csv', # set the path to your library CSV here
         csv_columns:              %i[rating
                                      name
                                      sources
@@ -18,36 +18,40 @@ module Readstat
                                      genres
                                      length
                                      notes],
+        error_if_blank:           %i[name length],
         header_first:             "Rating",
         comment_mark:             "\\",
         section_mark:             "\\------ ",
-        # TODO: raise error if any labels conflict (if one starts with another) in LoadLibrary#update_section
         section_prefixes:         { done:     "DONE",
                                     current:  "CURRENT",
                                     will:     "WILL" },
         required_sections:        [:done],
-        default_progress:         { done: 100 }, # others get 0
+        default_progress:         { done: 100 },
         dnf_mark:                 "DNF",
-        separator:                ",", # TODO: must be a single character
-        column_separator:         "|", # TODO: must be a single character
+        separator:                ",",
+        column_separator:         "|",
         name_separator:           " - ",
-        date_separator:           ".", # TODO: must be a single character
-        date_added_separator:     ";", # TODO: must be a single character
+        date_separator:           ".",
+        date_added_separator:     ";",
         notes_newline:            " -- "
       },
     item:
       {
-      template:       { rating: nil,
+        # only template[:perusals] is applied BEFORE warnings are shown for
+        # blanks. this means perusals cannot get a blank warning, whereas format
+        # (for example) will get a blank warning before the default of :print is
+        # applied. see Item::Validate#call.
+        template:     { rating: nil,
                         format: :print,
                         author: nil,
                         title: nil,
                         isbn: nil,
-                        sources: [],
+                        sources: [["Unspecified"]],
                         perusals: [{ date_added:    nil,
                                      date_started:  nil,
                                      date_finished: nil,
                                      progress: nil }],
-                        genres: [],
+                        genres: ["Uncategorized"],
                         length: 0,
                         notes: nil },
         formats:      { print:  "📕",
@@ -74,10 +78,9 @@ module Readstat
         validate:
           {
             warn_if_blank:        { [:rating] => "Rating",
-                                    [:isbn, :sources] => "Source (ISBN-10/ASIN or URL)" },
-                                    #[:perusals] => "Date(s) Added/Started/Finished" }, # TODO: how to warn of this?
-                                    #[:dates_started] => "Date(s) Started",
-                                    #[:dates_finished] => "Date(s) Finished" },
+                                    [:isbn, :sources] => "Source (ISBN-10/ASIN or URL)",
+                                    [:perusals] => "Date(s) Added/Started/Finished",
+                                    [:genres] => "Genre" },
             dont_warn_if_status:  [:current, :will]
           }
       },
