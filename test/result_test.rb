@@ -7,34 +7,34 @@ require "open3"
 require "library/library"
 require "result"
 
-class ResultTest < ReadstatTestWithItems
-  @config = Readstat.config
-  Readstat::CLI.load(@config.fetch(:item), @config.fetch(:output))
+class ResultTest < ReadingTestWithItems
+  @config = Reading.config
+  Reading::CLI.load(@config.fetch(:item), @config.fetch(:output))
   @err_block = lambda do |err|
     @err_log << err
     #err.show
   end
-  Colors = Readstat::Colors
+  Colors = Reading::Colors
 
   def setup
     self.class.clear_err_log
   end
 
   def output(input, items = basic_items.values)
-    Readstat::Command.parse(input, config.fetch(:item))
-                     .result(Readstat::Library.new(items, config.fetch(:item)))
+    Reading::Command.parse(input, config.fetch(:item))
+                     .result(Reading::Library.new(items, config.fetch(:item)))
                      .output(config.fetch(:output))
-  rescue Readstat::AppError => e; err_block.call(e)
+  rescue Reading::AppError => e; err_block.call(e)
   end
 
   def captured_output(input, items = basic_items.values)
     output = with_captured_stdout(print_also: true) do
-      Readstat::Command.parse(input, config.fetch(:item))
-                      .result(Readstat::Library.new(items, config.fetch(:item)))
+      Reading::Command.parse(input, config.fetch(:item))
+                      .result(Reading::Library.new(items, config.fetch(:item)))
                       .output(config.fetch(:output))
       end
-    Readstat::Colors.strip(output)
-  rescue Readstat::AppError => e; err_block.call(e)
+    Reading::Colors.strip(output)
+  rescue Reading::AppError => e; err_block.call(e)
   end
 
   def test_depth_1

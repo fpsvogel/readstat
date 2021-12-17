@@ -7,7 +7,7 @@ require_relative "length"
 require_relative "date"
 require_relative "perusal"
 
-module Readstat
+module Reading
   # an Item is a book, film, etc.
   class Item
     @new_id = 0

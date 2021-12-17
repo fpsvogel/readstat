@@ -2,7 +2,7 @@
 
 require_relative "../util"
 
-module Readstat
+module Reading
   class Item
     # a Source represents where an Item was acquired.
     class Source

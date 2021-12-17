@@ -3,7 +3,7 @@
 require_relative "util"
 require "readline"
 
-module Readstat
+module Reading
   using Blank
 
   # Input is a function that reads each line of input from the CLI.

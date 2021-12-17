@@ -2,7 +2,7 @@
 
 require_relative "parsable"
 
-module Readstat
+module Reading
 
   # an Option is any non-command entered in the CLI, such as "view=pie".
   class Option < Parsable

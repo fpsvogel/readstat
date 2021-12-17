@@ -7,7 +7,7 @@ require_relative "perusal"
 require_relative "sources"
 require "io/console"
 
-module Readstat
+module Reading
   class Item
     # Validate is a function that checks Item data and corrects it if necessary.
     class Validate
@@ -50,13 +50,13 @@ module Readstat
       end
 
       def filled_in_perusals(perusals, template)
-      return perusals unless perusals.all? { |perusal| perusal.is_a? Hash }
-      perusals.map do |perusal|
-        template[:perusals].first.merge(perusal) do |_key, from_template, from_data|
-          from_data.nil? ? from_template : from_data
+        return perusals unless perusals.all? { |perusal| perusal.is_a? Hash }
+        perusals.map do |perusal|
+          template[:perusals].first.merge(perusal) do |_key, from_template, from_data|
+            from_data.nil? ? from_template : from_data
+          end
         end
       end
-    end
 
       def warn_about_blanks(data, line)
         blanks = warn_if_blank.select do |keys, _|

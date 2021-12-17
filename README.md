@@ -12,7 +12,7 @@ The reading log looks like this:
 
 ## Usage
 
-For a sample reading log, see [`read.csv`](https://github.com/fpsvogel/readstat/blob/main/lib/config.rb).
+For a sample reading log, see [`reading.csv`](https://github.com/fpsvogel/readstat/blob/main/csv/reading.csv).
 
 To start the app, download and extract the source code, then run:
 

@@ -3,7 +3,7 @@
 require_relative "../util"
 require_relative "date"
 
-module Readstat
+module Reading
   class Item
     # a Perusal represents when an Item was consumed. e.g. a first reading and a
     # later rereading of a book would be two Perusals.

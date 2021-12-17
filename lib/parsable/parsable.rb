@@ -3,7 +3,7 @@
 require_relative "../util"
 require_relative "../errors"
 
-module Readstat
+module Reading
   using Blank
 
   # a Parsable is a word (more specifically a space-delimited sequence of

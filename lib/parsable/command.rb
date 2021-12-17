@@ -8,7 +8,7 @@ require_relative "../item/length"
 require_relative "../result"
 require_relative "help"
 
-module Readstat
+module Reading
   # a Command is a CLI command such as "average" or "list".
   class Command < Parsable
     using MapExtractFirst

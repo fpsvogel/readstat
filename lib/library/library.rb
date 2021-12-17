@@ -2,13 +2,14 @@
 
 require_relative "../util"
 require_relative "../errors"
-require_relative "load_items"
+# require_relative "load_items"
 require_relative "../item/item"
 require_relative "../item/date"
 require_relative "../item/length"
 require "forwardable"
+require "reading/csv/load"
 
-module Readstat
+module Reading
   # Library is a container for Items, providing ways to retrieve Items and data
   # that spans across Items.
   class Library
@@ -16,10 +17,15 @@ module Readstat
 
     attr_reader :config_item
 
-    def self.load(custom_feed = nil, config_load, config_item, &err_block)
-      new(LoadItems.new(config_load, config_item)
-                   .call(custom_feed, &err_block),
-          config_item)
+    def self.load(custom_feed = nil, config_csv, config_item, &err_block)
+      items =
+        Reading::CSV::Load
+        .new(config_csv, config_item)
+        .call(custom_feed, err_block: err_block) do |data, line, i|
+          Item.create(data, config_item, line, warn: i.zero?, &err_block)
+          # i.zero?: warn only once for this line, in case of multiple items on a line.
+        end
+      new(items, config_item)
     end
 
     def initialize(items, config_item)

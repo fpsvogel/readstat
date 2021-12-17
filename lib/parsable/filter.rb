@@ -3,7 +3,7 @@
 require_relative "../util"
 require_relative "option"
 
-module Readstat
+module Reading
 
   # a Filter is an option entered in the CLI that is used to filter the results.
   class Filter < Option

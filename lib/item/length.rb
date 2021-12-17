@@ -4,7 +4,7 @@ require_relative "../util"
 require "forwardable"
 require "bigdecimal"
 
-module Readstat
+module Reading
   class Item
     # a LengthPerDay is a wrapper around a Length, indicating pages/hours per
     # day, used for calculations involving amounts per day.

@@ -10,7 +10,7 @@ require_relative "item/length"
 require_relative "item/date"
 require "date"
 
-module Readstat
+module Reading
   using Blank
 
   class CLI

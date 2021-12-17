@@ -6,7 +6,7 @@ require "tabulo"
 require "unicode_plot"
 require "tty-pie"
 
-module Readstat
+module Reading
   # a Result holds the raw output from a Command and can output it to STDOUT in
   # chart form.
   class Result

@@ -6,11 +6,11 @@ require_relative "test_base_with_items"
 require "library/library"
 require "util"
 
-class CLITest < ReadstatTestWithItems
+class CLITest < ReadingTestWithItems
   using Blank
 
-  @config = Readstat.config
-  Readstat::CLI.load(@config.fetch(:item), @config.fetch(:output))
+  @config = Reading.config
+  Reading::CLI.load(@config.fetch(:item), @config.fetch(:output))
   @err_block = lambda do |err|
     @err_log << err
     err.show
@@ -21,11 +21,11 @@ class CLITest < ReadstatTestWithItems
   end
 
   def run_command(input, items = basic_items.values, return_raw_data: false)
-    Readstat::Command.parse(input, config.fetch(:item))
-                     .result(Readstat::Library.new(items, config.fetch(:item)),
+    Reading::Command.parse(input, config.fetch(:item))
+                     .result(Reading::Library.new(items, config.fetch(:item)),
                              return_raw_data: return_raw_data)
                      .raw
-  rescue Readstat::AppError => e
+  rescue Reading::AppError => e
     err_block.call(e)
     []
   end
@@ -84,9 +84,9 @@ class CLITest < ReadstatTestWithItems
 #    skip
     test_items = basic_done_dnf_items
     length_ranges = config.fetch(:item).fetch(:lengths).map do |label, arr|
-      Readstat::Item::LengthRange.new(
-        Readstat::Item::Length.new(arr[0], config.fetch(:item).fetch(:length)),
-        Readstat::Item::Length.new(arr[1], config.fetch(:item).fetch(:length)),
+      Reading::Item::LengthRange.new(
+        Reading::Item::Length.new(arr[0], config.fetch(:item).fetch(:length)),
+        Reading::Item::Length.new(arr[1], config.fetch(:item).fetch(:length)),
         label: label)
     end
     expected = test_items.group_by do |item|
@@ -135,10 +135,10 @@ class CLITest < ReadstatTestWithItems
       while item.sources.count > 1
         sub_data_changes = { sources: [item.sources.last] }
         sub_new_data = item.data(sub_data_changes)
-        sub_items << Readstat::Item.create(sub_new_data, config.fetch(:item))
+        sub_items << Reading::Item.create(sub_new_data, config.fetch(:item))
         data_changes = { sources: item.sources[0..-2] }
         new_data = item.data(data_changes)
-        item = Readstat::Item.create(new_data, config.fetch(:item))
+        item = Reading::Item.create(new_data, config.fetch(:item))
       end
       sub_items.presence || item
     end
@@ -193,7 +193,7 @@ class CLITest < ReadstatTestWithItems
                   .take(number)
                   .to_h
     if arg == "speed"
-      expected.transform_values! { | length| Readstat::Item::LengthPerDay.new(length) }
+      expected.transform_values! { | length| Reading::Item::LengthPerDay.new(length) }
     end
     actual = run_command("#{order} #{number} #{plural ? arg.to_s + "s" : arg}")
     assert_equal expected.to_a, actual.to_a
@@ -201,7 +201,7 @@ class CLITest < ReadstatTestWithItems
 
   def ranked_amounts(number = 3, order:)
     test_items = basic_done_dnf_items
-    amounts_per_day = Readstat::Library.new(test_items, config.fetch(:item))
+    amounts_per_day = Reading::Library.new(test_items, config.fetch(:item))
                                        .amounts_per_day
     expected = amounts_per_day.sort_by do |date, length|
                                 [length, date]
@@ -213,7 +213,7 @@ class CLITest < ReadstatTestWithItems
                               .to_h
                               .transform_keys(&:to_s)
                               .transform_values do |length|
-                                Readstat::Item::LengthPerDay.new(length)
+                                Reading::Item::LengthPerDay.new(length)
                               end
     actual = run_command("#{order} #{number} amounts")
     assert_equal expected.to_a, actual.to_a
@@ -348,7 +348,7 @@ class CLITest < ReadstatTestWithItems
     if expected_titles.is_a? Array
       assert_equal expected_titles, raw_data.keys.map(&:title)
     elsif expected_titles.is_a? Hash
-      assert_equal expected_titles, deep_transform(raw_data, Readstat::Item, &:title)
+      assert_equal expected_titles, deep_transform(raw_data, Reading::Item, &:title)
     end
   end
 
@@ -622,7 +622,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_nonexistent_command
@@ -631,7 +631,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("conut", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_multiple_commands
@@ -640,7 +640,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count top length", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_no_argument
@@ -649,7 +649,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_multiple_arguments
@@ -658,7 +658,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count lengths ratings", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_empty_filter
@@ -667,7 +667,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count lengths genre=", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_superfluous_word
@@ -676,7 +676,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count length gobbledigook", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_misspelled_argument
@@ -685,7 +685,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count lenght", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_spaces_in_filter
@@ -694,7 +694,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("count length genre = novel", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_search_filter_missing_quotes
@@ -703,7 +703,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command('count length search=j. r. r. tolkien', test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_search_filter_missing_one_quote
@@ -712,7 +712,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command('count length search="j. r. r. tolkien', test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_rating_filter_nonnumeric
@@ -721,7 +721,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("list genre rating=1,two", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_manual_length_filter_invalid_length
@@ -730,7 +730,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("list genre length=ten-200", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_manual_length_filter_missing_length
@@ -739,7 +739,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("list genre length=200-", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_manual_length_filter_missing_length_no_hyphen
@@ -748,7 +748,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("list genre length=200", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_timespan_filter_invalid_date
@@ -757,7 +757,7 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("list genre 2020/03-2020/14", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 
   def test_timespan_filter_invalid_date_format
@@ -766,6 +766,6 @@ class CLITest < ReadstatTestWithItems
     expected = []
     actual = run_command("list genre 2020.03-2020.14", test_items)
     assert_equal expected.to_a, actual.to_a
-    assert_error_raised Readstat::InputError
+    assert_error_raised Reading::InputError
   end
 end

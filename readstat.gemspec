@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = "readstat"
-  # spec.version       = Readstat::VERSION
+  # spec.version       = Reading::VERSION
   spec.authors       = ["Felipe Vogel"]
   spec.email         = ["fps.vogel@gmail.com"]
 

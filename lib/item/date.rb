@@ -2,7 +2,7 @@
 
 require_relative "../util"
 
-module Readstat
+module Reading
   class Item
     # a NilDate is for an Item's Perusal with no date specified, meaning it
     # either has not been started or has not been finished, so it is the most

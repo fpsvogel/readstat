@@ -2,7 +2,7 @@
 
 require_relative "../util"
 
-module Readstat
+module Reading
   # a Help is a standin for a Command, sharing the same interface for outputting.
   class Help
     attr_private :help_str

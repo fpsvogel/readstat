@@ -1,23 +1,26 @@
 # frozen_string_literal: true
 
-module Readstat
+module Reading
   def self.config
     @config
   end
 
   @config =
   {
-    load:
+    csv:
       {
         path:                     nil, # test CSVs are in test/load_items_test.rb
-        csv_columns:              %i[rating
+        column_names:             %i[rating
                                      name
                                      sources
                                      dates_started
                                      dates_finished
                                      genres
                                      length
-                                     notes],
+                                     public_notes
+                                     blurb
+                                     private_notes
+                                     history],
         error_if_blank:           %i[name length],
         header_first:             "Rating",
         comment_mark:             "\\",
@@ -30,8 +33,10 @@ module Readstat
         dnf_mark:                 "DNF",
         separator:                ",",
         column_separator:         "|",
-        name_separator:           " - ",
-        date_separator:           ".",
+        author_separator:         " - ",
+        title_info_separator:     " -- ",
+        source_name_separator:    " - ",
+        date_separator:           "/",
         date_added_separator:     ";",
         notes_newline:            " -- "
       },
@@ -53,7 +58,10 @@ module Readstat
                                      progress: nil }],
                         genres: ["Uncategorized"],
                         length: 0,
-                        notes: nil },
+                        public_notes: nil,
+                        blurb: nil,
+                        private_notes: nil,
+                        history: nil },
         formats:      { print:  "📕",
                         ebook:  "⚡",
                         audio:  "🔊",

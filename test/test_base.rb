@@ -1,6 +1,6 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
-class ReadstatTest < Minitest::Test
+class ReadingTest < Minitest::Test
   self.class.attr_reader :all_items, :config, :err_block, :err_log
 
   def self.clear_err_log
