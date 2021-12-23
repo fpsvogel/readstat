@@ -11,12 +11,12 @@ The reading log looks like this:
 (That is a CSV file viewed in VS Code with the [Rainbow CSV extension](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv).)
 
 ### Table of Contents
-- [Why this is on my GitHub portfolio](#why-this-is-on-my-github-portfolio)
+- [Why this *was* on my GitHub portfolio](#why-this-was-on-my-github-portfolio)
 - [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
 
-## Why this is on my GitHub portfolio
+## Why this *was* on my GitHub portfolio
 
 This was my first significant Ruby project, but I'm still proud that even at that early stage I thoroughly tested my code: see [`test/csv_parse_test.rb`](https://github.com/fpsvogel/reading-csv/blob/main/test/csv_parse_test.rb) and [`test/cli_test.rb`](https://github.com/fpsvogel/readstat/blob/main/test/cli_test.rb).
 
