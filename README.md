@@ -1,3 +1,5 @@
+⚠️ *This project is unmaintained, and now replaced by my Reading gem: https://github.com/fpsvogel/reading* ⚠️
+
 <h1 align="center">Readstat</h1>
 
 A CLI app that shows reading statistics based on a CSV reading log.
@@ -18,8 +20,6 @@ The reading log looks like this:
 - [License](#license)
 
 ## Usage
-
-⚠️ *The app has some broken dependencies right now, and will soon be updated to a working state (—Felipe, 2022-12-28)* ⚠️
 
 For a sample reading log, see [`reading.csv`](https://github.com/fpsvogel/readstat/blob/main/csv/reading.csv).
 
