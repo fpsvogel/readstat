@@ -1,4 +1,5 @@
-⚠️ *This project is unmaintained, and now replaced by my Reading gem: https://github.com/fpsvogel/reading* ⚠️
+> [!WARNING]  
+> This project is unmaintained, and now replaced by my Reading gem: https://github.com/fpsvogel/reading
 
 <h1 align="center">Readstat</h1>
 
